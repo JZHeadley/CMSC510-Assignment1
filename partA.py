@@ -30,7 +30,7 @@ for i in range(0, x_train.__len__()):
         x_train_mine.append(x_train[i])
         y_train_mine.append(y_train[i])
 
-
+print(x_train_mine[0])
 numberOfFeatures = x_train[0].__len__()
 
 x1 = []
@@ -70,7 +70,7 @@ basic_model = pm.Model()
 # fill the model with details:
 with basic_model:
     # parameters for priors for gaussian means
-    mu_prior_cov = 100 * np.eye(numberOfFeatures)
+    mu_prior_cov = 10 * np.eye(numberOfFeatures)
     mu_prior_mu = np.zeros((numberOfFeatures,))
 
     # Priors for gaussian means (Gaussian prior): mu1 ~ N(mu_prior_mu, mu_prior_cov), mu0 ~ N(mu_prior_mu, mu_prior_cov)

@@ -3,55 +3,40 @@
 """
 @author: tarodz
 """
-from keras.datasets import mnist
-import pymc3 as pm
+
+import pymc3 as pm;
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
-import theano.tensor as T
+import theano.tensor as T;
 
-
-def normalize(dataset):
-    for i in range(0, dataset.__len__()):
-        for j in range(0,dataset[i].__len__()):
-            if dataset[i][j]:
-                dataset[i][j] = 1
-    return dataset
-
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-
-np.set_printoptions(linewidth=200)
-
-x_train_mine =[]
-y_train_mine=[]
-for i in range(0,x_train.__len__()):
-    if y_train[i] ==2 or y_train[i]==1:
-        x_train_mine.append(x_train[i])
-        if(y_train[i]==1):
-            y_train_mine.append(0)
-        elif(y_train[i]==2):
-            y_train_mine.append(1)
-
-# x_train_mine_norm=normalize(x_train_mine)
-# y_train_mine_norm=normalize(y_train_mine)
-
+### START OF SOME FAKE DATASET GENERATION
+np.random.seed(123)
 
 #number of samples in total
-numberOfFeatures=x_train_mine.__len__();
+sCnt=1000;
+numberOfFeatures=3;
+
+# true parameters w and b
+true_w=np.zeros((numberOfFeatures,1));
+true_w[0]=-0.5;
+true_w[1]=1.3;
+true_w[2]=1.3;
+true_b=-0.3;
 
 # sample some random point in 2D feature space
-X=x_train_mine
+X=np.random.randn(sCnt,numberOfFeatures).astype(dtype='float32');
 
 # calculate u=w^Tx+b
 #true_u = true_w1*X[:,0] + true_w2*X[:,1] + true_b;
-# true_u = np.dot(X,true_w) + true_b;
+true_u = np.dot(X,true_w) + true_b;
 
 # P(+1|x)=a(u) #see slides for def. of a(u)
-# probPlusOne=1.0/(1.0+np.exp(-1.0*true_u));
+probPlusOne=1.0/(1.0+np.exp(-1.0*true_u));
 
 # sample realistic (i.e. based on pPlusOne, but not deterministic) class values for the dataset
 # class +1 is comes from a probability distribution with probability "prob" for +1, and 1-prob for class 0
-Y=y_train_mine
+Y=np.random.binomial(1,probPlusOne);
 
 #### END OF FAKE DATASET GENERATION
 
@@ -99,22 +84,21 @@ with basic_model:
 # now perform maximum likelihood (actually, maximum a posteriori (MAP), since we have priors) estimation
 # map_estimate1 is a dictionary: "parameter name" -> "it's estimated value"
 map_estimate1 = pm.find_MAP(model=basic_model)
-print(map_estimate1)
-
+'''
 # we can also do MCMC sampling from the distribution over the parameters
 # and e.g. get confidence intervals
-# with basic_model:
+with basic_model:
 
-#     # obtain starting values via MAP
-#     start = pm.find_MAP()
+    # obtain starting values via MAP
+    start = pm.find_MAP()
 
-#     # instantiate sampler
-#     step = pm.Slice()
+    # instantiate sampler
+    step = pm.Slice()
 
-#     # draw 10000 posterior samples
-#     # can take rather long time
-#     trace = pm.sample(10000, step=step, start=start)
+    # draw 10000 posterior samples
+    # can take rather long time
+    trace = pm.sample(10000, step=step, start=start)
 
-# pm.traceplot(trace)
-# pm.summary(trace)
-plt.show()
+pm.traceplot(trace)
+pm.summary(trace)
+'''
