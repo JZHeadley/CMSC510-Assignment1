@@ -14,7 +14,7 @@ import theano.tensor as T
 def normalize(dataset):
     for i in range(0, dataset.__len__()):
         for j in range(0, dataset[i].__len__()):
-            if dataset[i][j]:
+            if dataset[i][j] > 0:
                 dataset[i][j] = 1
     return dataset
 
@@ -26,28 +26,34 @@ np.set_printoptions(linewidth=200)
 x_train_mine = []
 y_train_mine = []
 for i in range(0, x_train.__len__()):
-    if y_train[i] == 2 or y_train[i] == 1:
+    if y_train[i] == 1 or y_train[i] == 2:
         x_train_mine.append(x_train[i])
         if(y_train[i] == 1):
-            y_train_mine.append(0)
-        elif(y_train[i] == 2):
             y_train_mine.append(1)
+        elif(y_train[i] == 2):
+            y_train_mine.append(0)
 
-x_train_mine=x_train_mine[:100]
-y_train_mine=y_train_mine[:100]
+x_train_mine = x_train_mine[:100]
+y_train_mine = y_train_mine[:100]
 
-# normalize data and swap the grayscale 1-255 value for a 1 only 
+# normalize data and swap the grayscale 1-255 value for a 1 only
 x_train_mine_norm = []
-for i in range(0,x_train_mine.__len__()):
+for i in range(0, x_train_mine.__len__()):
     x_train_mine_norm.append(normalize(x_train_mine[i]))
 
-x_train_mine_norm_t = np.transpose(x_train_mine_norm)
-
-# number of samples in total
-numberOfFeatures = x_train_mine_norm.__len__()
 
 # sample some random point in 2D feature space
-X = x_train_mine_norm_t
+x_train_mine_norm_flat = []
+for i in range(0, x_train_mine_norm.__len__()):
+    # x_train_mine_norm_flat.append(x_train_mine_norm[i])
+    for j in range(0,x_train_mine_norm[i].__len__()):
+        x_train_mine_norm_flat.append(x_train_mine_norm[i][j])
+
+
+# number of samples in total
+numberOfFeatures = x_train_mine_norm_flat.__len__()
+
+X = np.transpose(x_train_mine_norm_flat)
 
 # calculate u=w^Tx+b
 #true_u = true_w1*X[:,0] + true_w2*X[:,1] + true_b
@@ -59,7 +65,8 @@ X = x_train_mine_norm_t
 # sample realistic (i.e. based on pPlusOne, but not deterministic) class values for the dataset
 # class +1 is comes from a probability distribution with probability "prob" for +1, and 1-prob for class 0
 Y = y_train_mine
-
+print(X[2])
+print(Y[2])
 # END OF FAKE DATASET GENERATION
 
 # for MNIST experiment:
@@ -105,24 +112,41 @@ with basic_model:
 # now perform maximum likelihood (actually, maximum a posteriori (MAP), since we have priors) estimation
 # map_estimate1 is a dictionary: "parameter name" -> "it's estimated value"
 map_estimate1 = pm.find_MAP(model=basic_model)
+est_b = map_estimate1['estimated_b']
+est_w = map_estimate1['estimated_w']
+print(map_estimate1['my_prob'])
 
-print("Estimate b is",map_estimate1['estimated_b'])
-print(map_estimate1['estimated_w'])
+print("Estimate b is", est_b)
+# print(est_w)
 
-# we can also do MCMC sampling from the distribution over the parameters
-# and e.g. get confidence intervals
-# with basic_model:
+x_test_mine = []
+y_test_mine = []
+for i in range(0, x_test.__len__()):
+    if y_test[i] == 2 or y_test[i] == 1:
+        x_test_mine.append(x_test[i])
+        if(y_test[i] == 1):
+            y_test_mine.append(1)
+        elif(y_test[i] == 2):
+            y_test_mine.append(0)
 
-#     # obtain starting values via MAP
-#     start = pm.find_MAP()
+x_test_mine = x_test_mine[:100]
+y_test_mine = y_test_mine[:100]
 
-#     # instantiate sampler
-#     step = pm.Slice()
+x_test_mine_norm = []
+for i in range(0, x_test_mine.__len__()):
+    x_test_mine_norm.append(normalize(x_test_mine[i]))
 
-#     # draw 10000 posterior samples
-#     # can take rather long time
-#     trace = pm.sample(10000, step=step, start=start)
+x_test_mine_norm_flat = []
+for i in range(0, x_test_mine_norm.__len__()):
+    # x_train_mine_norm_flat.append(x_train_mine_norm[i])
+    for j in range(0,x_test_mine_norm[i].__len__()):
+        x_test_mine_norm_flat.append(x_test_mine_norm[i][j])
 
-# pm.traceplot(trace)
-# pm.summary(trace)
-plt.show()
+test_class = []
+for i in range(0, x_test_mine_norm.__len__()):
+    u_val = T.dot(np.transpose(x_test_mine_norm_flat), T.shape_padright(est_w,1)).eval() + est_b
+    test_class.append(1.0 / (1.0 + T.exp(-1.0*u_val).eval()))
+
+print("Prob is")
+print(test_class)
+
