@@ -10,6 +10,12 @@ import matplotlib.pyplot as plt
 import scipy as sp
 import theano.tensor as T
 
+def extractClass(x, y, toExtract):
+    classSamples = []
+    for i in range(0, x.__len__()):
+        if y[i] == toExtract:
+            classSamples.append(x[i])
+    return classSamples
 
 def normalize(dataset):
     for i in range(0, dataset.__len__()):
@@ -17,6 +23,17 @@ def normalize(dataset):
             if dataset[i][j] > 0:
                 dataset[i][j] = 1
     return dataset
+
+
+def flatten(arrayOfMatrix):
+    flattened = []
+    for i in range(0, arrayOfMatrix.__len__()):
+        flat_x = []
+        for j in range(0, arrayOfMatrix[i].__len__()):
+            for k in range(0, arrayOfMatrix[i][j].__len__()):
+                flat_x.append(arrayOfMatrix[i][j][k])
+        flattened.append(flat_x)
+    return flattened
 
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -43,17 +60,13 @@ for i in range(0, x_train_mine.__len__()):
 
 
 # sample some random point in 2D feature space
-x_train_mine_norm_flat = []
-for i in range(0, x_train_mine_norm.__len__()):
-    # x_train_mine_norm_flat.append(x_train_mine_norm[i])
-    for j in range(0,x_train_mine_norm[i].__len__()):
-        x_train_mine_norm_flat.append(x_train_mine_norm[i][j])
-
+x_train_mine_norm_flat = flatten(x_train_mine_norm)
 
 # number of samples in total
-numberOfFeatures = x_train_mine_norm_flat.__len__()
+numberOfFeatures = x_train_mine_norm_flat[0].__len__()
+print(x_train_mine_norm_flat[0].__len__())
 
-X = np.transpose(x_train_mine_norm_flat)
+X = np.array(x_train_mine_norm_flat)
 
 # calculate u=w^Tx+b
 #true_u = true_w1*X[:,0] + true_w2*X[:,1] + true_b
@@ -64,9 +77,8 @@ X = np.transpose(x_train_mine_norm_flat)
 
 # sample realistic (i.e. based on pPlusOne, but not deterministic) class values for the dataset
 # class +1 is comes from a probability distribution with probability "prob" for +1, and 1-prob for class 0
-Y = y_train_mine
-print(X[2])
-print(Y[2])
+Y = np.array(y_train_mine).reshape(y_train_mine.__len__(), 1)
+# print(Y.reshape(Y.__len__(),1))
 # END OF FAKE DATASET GENERATION
 
 # for MNIST experiment:
@@ -96,14 +108,14 @@ with basic_model:
     # here w, b are unknown to be estimated from data
     # X is the known data matrix [samples x features]
     u = pm.Deterministic('my_u', T.dot(X, ww) + b)
-#    u = pm.Deterministic('my_u',X*w + b)
+    #    u = pm.Deterministic('my_u',X*w + b)
 
     # P(+1|x)=a(u) #see slides for def. of a(u)
     prob = pm.Deterministic('my_prob', 1.0 / (1.0 + T.exp(-1.0*u)))
 
-    # class +1 is comes from a probability distribution with probability "prob" for +1, and 1-prob for class 0
+    # class +1 is comes from a probability distribution with probbility "prob" for +1, and 1-prob for class 0
     # here Y is the known vector of classes
-    # prob is (indirectly coming from the estimate of w,b and the data x)
+    # prob is (indirectly coming from the estimate of w,b and thedata x)
     Y_obs = pm.Bernoulli('Y_obs', p=prob, observed=Y)
 
 # done with setting up the model
@@ -114,7 +126,8 @@ with basic_model:
 map_estimate1 = pm.find_MAP(model=basic_model)
 est_b = map_estimate1['estimated_b']
 est_w = map_estimate1['estimated_w']
-print(map_estimate1['my_prob'])
+
+# print(map_estimate1['Y_obs'])
 
 print("Estimate b is", est_b)
 # print(est_w)
@@ -128,25 +141,60 @@ for i in range(0, x_test.__len__()):
             y_test_mine.append(1)
         elif(y_test[i] == 2):
             y_test_mine.append(0)
+y_test_mine = np.array(y_test_mine).reshape(y_test_mine.__len__(),1)
 
-x_test_mine = x_test_mine[:100]
-y_test_mine = y_test_mine[:100]
+# x_test_mine = x_test_mine[:10]
+# y_test_mine = np.array(y_test_mine[:10])
+
+# extract my actual classes for validation counts later
+y_test_mine_class1 = extractClass(x_test_mine,y_test_mine,1)
+y_test_mine_class0 = extractClass(x_test_mine,y_test_mine,0)
 
 x_test_mine_norm = []
 for i in range(0, x_test_mine.__len__()):
     x_test_mine_norm.append(normalize(x_test_mine[i]))
 
-x_test_mine_norm_flat = []
-for i in range(0, x_test_mine_norm.__len__()):
-    # x_train_mine_norm_flat.append(x_train_mine_norm[i])
-    for j in range(0,x_test_mine_norm[i].__len__()):
-        x_test_mine_norm_flat.append(x_test_mine_norm[i][j])
+x_test_mine_norm_flat = np.array(flatten(x_test_mine_norm))
 
 test_class = []
-for i in range(0, x_test_mine_norm.__len__()):
-    u_val = T.dot(np.transpose(x_test_mine_norm_flat), T.shape_padright(est_w,1)).eval() + est_b
-    test_class.append(1.0 / (1.0 + T.exp(-1.0*u_val).eval()))
+numClass0 = 0
+numClass1 = 0
+for i in range(0, x_test_mine_norm_flat.__len__()):
+    u_val = T.dot(x_test_mine_norm_flat,
+                  T.shape_padright(est_w, 1)).eval() + est_b
+    # print("u val ",i,"is",u_val)
+    test_class_val = 1.0 / (1.0 + T.exp(-1.0*u_val).eval())
+    # print("test val ",i,"is",test_class_val)
+    if test_class_val[i] < .5:
+        numClass0 += 1
+    elif test_class_val[i] > .5:
+        numClass1 +=1
+    test_class.append(test_class_val)
 
 print("Prob is")
-print(test_class)
+print(test_class[0])
+print("We predicted we have",numClass0,"images of 2's.  We actually have",y_test_mine_class0.__len__(), "images of 2's")
+print("We predicted we have",numClass1,"images of 1's.  We actually have",y_test_mine_class1.__len__(), "images of 1's")
 
+
+
+print()
+print(y_test_mine)
+
+# we can also do MCMC sampling from the distribution over the parameters
+# and e.g. get confidence intervals
+# with basic_model:
+
+#     # obtain starting values via MAP
+#     start = pm.find_MAP()
+
+#     # instantiate sampler
+#     step = pm.Slice()
+
+#     # draw 10000 posterior samples
+#     # can take rather long time
+#     trace = pm.sample(5000, step=step, start=start)
+
+# pm.traceplot(trace)
+# pm.summary(trace)
+# plt.show()
