@@ -9,46 +9,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
 import theano.tensor as T
-
-def extractClass(x, y, toExtract):
-    classSamples = []
-    for i in range(0, x.__len__()):
-        if y[i] == toExtract:
-            classSamples.append(x[i])
-    return classSamples
-
-def normalize(dataset):
-    for i in range(0, dataset.__len__()):
-        for j in range(0, dataset[i].__len__()):
-            if dataset[i][j] > 0:
-                dataset[i][j] = 1
-    return dataset
-
-
-def flatten(arrayOfMatrix):
-    flattened = []
-    for i in range(0, arrayOfMatrix.__len__()):
-        flat_x = []
-        for j in range(0, arrayOfMatrix[i].__len__()):
-            for k in range(0, arrayOfMatrix[i][j].__len__()):
-                flat_x.append(arrayOfMatrix[i][j][k])
-        flattened.append(flat_x)
-    return flattened
-
+from support import *
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 np.set_printoptions(linewidth=200)
 
-x_train_mine = []
-y_train_mine = []
-for i in range(0, x_train.__len__()):
-    if y_train[i] == 1 or y_train[i] == 2:
-        x_train_mine.append(x_train[i])
-        if(y_train[i] == 1):
-            y_train_mine.append(1)
-        elif(y_train[i] == 2):
-            y_train_mine.append(0)
+x_train_mine, y_train_mine = extractMine(x_train, y_train, 1, 2)
 
 x_train_mine = x_train_mine[:100]
 y_train_mine = y_train_mine[:100]
@@ -78,7 +45,6 @@ X = np.array(x_train_mine_norm_flat)
 # sample realistic (i.e. based on pPlusOne, but not deterministic) class values for the dataset
 # class +1 is comes from a probability distribution with probability "prob" for +1, and 1-prob for class 0
 Y = np.array(y_train_mine).reshape(y_train_mine.__len__(), 1)
-# print(Y.reshape(Y.__len__(),1))
 # END OF FAKE DATASET GENERATION
 
 # for MNIST experiment:
@@ -127,10 +93,8 @@ map_estimate1 = pm.find_MAP(model=basic_model)
 est_b = map_estimate1['estimated_b']
 est_w = map_estimate1['estimated_w']
 
-# print(map_estimate1['Y_obs'])
 
 print("Estimate b is", est_b)
-# print(est_w)
 
 x_test_mine = []
 y_test_mine = []
@@ -141,14 +105,13 @@ for i in range(0, x_test.__len__()):
             y_test_mine.append(1)
         elif(y_test[i] == 2):
             y_test_mine.append(0)
-y_test_mine = np.array(y_test_mine).reshape(y_test_mine.__len__(),1)
 
-# x_test_mine = x_test_mine[:10]
-# y_test_mine = np.array(y_test_mine[:10])
+x_test_mine = x_test_mine[:10]
+y_test_mine = np.array(y_test_mine[:10])
 
 # extract my actual classes for validation counts later
-y_test_mine_class1 = extractClass(x_test_mine,y_test_mine,1)
-y_test_mine_class0 = extractClass(x_test_mine,y_test_mine,0)
+y_test_mine_class1 = extractClass(x_test_mine, y_test_mine, 1)
+y_test_mine_class0 = extractClass(x_test_mine, y_test_mine, 0)
 
 x_test_mine_norm = []
 for i in range(0, x_test_mine.__len__()):
@@ -156,45 +119,29 @@ for i in range(0, x_test_mine.__len__()):
 
 x_test_mine_norm_flat = np.array(flatten(x_test_mine_norm))
 
-test_class = []
+test_class = np.array([])
 numClass0 = 0
 numClass1 = 0
 for i in range(0, x_test_mine_norm_flat.__len__()):
     u_val = T.dot(x_test_mine_norm_flat,
                   T.shape_padright(est_w, 1)).eval() + est_b
-    # print("u val ",i,"is",u_val)
     test_class_val = 1.0 / (1.0 + T.exp(-1.0*u_val).eval())
-    # print("test val ",i,"is",test_class_val)
     if test_class_val[i] < .5:
         numClass0 += 1
+        test_class = np.append(test_class, 0)
     elif test_class_val[i] > .5:
-        numClass1 +=1
-    test_class.append(test_class_val)
+        numClass1 += 1
+        test_class = np.append(test_class, 1)
 
-print("Prob is")
-print(test_class[0])
-print("We predicted we have",numClass0,"images of 2's.  We actually have",y_test_mine_class0.__len__(), "images of 2's")
-print("We predicted we have",numClass1,"images of 1's.  We actually have",y_test_mine_class1.__len__(), "images of 1's")
+# print("Prob is")
+# print(test_class)
+# print(y_test_mine)
 
+print("We have", y_test_mine.__len__(), "total test samples...")
+print("We predicted we have", numClass0, "images of 2's.  We actually have",
+      y_test_mine_class0.__len__(), "images of 2's")
+print("We predicted we have", numClass1, "images of 1's.  We actually have",
+      y_test_mine_class1.__len__(), "images of 1's")
 
-
-print()
-print(y_test_mine)
-
-# we can also do MCMC sampling from the distribution over the parameters
-# and e.g. get confidence intervals
-# with basic_model:
-
-#     # obtain starting values via MAP
-#     start = pm.find_MAP()
-
-#     # instantiate sampler
-#     step = pm.Slice()
-
-#     # draw 10000 posterior samples
-#     # can take rather long time
-#     trace = pm.sample(5000, step=step, start=start)
-
-# pm.traceplot(trace)
-# pm.summary(trace)
-# plt.show()
+print("Accuracy is", computeAccuracy(y_test_mine, test_class)*100, "% using",
+      y_train_mine.__len__(), "training samples and", y_test_mine.__len__(), "testing samples")

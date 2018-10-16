@@ -11,46 +11,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
 import theano.tensor as T
-
-def normalize(dataset):
-    for i in range(0, dataset.__len__()):
-        for j in range(0, dataset[i].__len__()):
-            if dataset[i][j] > 0:
-                dataset[i][j] = 1
-    return dataset
-
-
-def flatten(arrayOfMatrix):
-    flattened = []
-    for i in range(0, arrayOfMatrix.__len__()):
-        flat_x = []
-        for j in range(0, arrayOfMatrix[i].__len__()):
-            for k in range(0, arrayOfMatrix[i][j].__len__()):
-                flat_x.append(arrayOfMatrix[i][j][k])
-        flattened.append(flat_x)
-    return flattened
-
-
-def extractClass(x, y, toExtract):
-    classSamples = []
-    for i in range(0, x.__len__()):
-        if y[i] == toExtract:
-            classSamples.append(x[i])
-    return classSamples
+from support import *
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 np.set_printoptions(linewidth=200)
 
-x_train_mine = []
-y_train_mine = []
-for i in range(0, x_train.__len__()):
-    if y_train[i] == 1 or y_train[i] == 2:
-        x_train_mine.append(x_train[i])
-        if(y_train[i] == 1):
-            y_train_mine.append(1)
-        elif(y_train[i] == 2):
-            y_train_mine.append(2)
+x_train_mine, y_train_mine = extractMine(x_train, y_train, 1, 2)
 
 x_train_mine = x_train_mine[:100]
 y_train_mine = y_train_mine[:100]
