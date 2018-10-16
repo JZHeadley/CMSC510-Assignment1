@@ -12,13 +12,16 @@ import theano.tensor as T
 from support import *
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
-
+numToTrainOn=100
+numToTestOn=100
+class1 = 1
+class0 = 2
 np.set_printoptions(linewidth=200)
 
-x_train_mine, y_train_mine = extractMine(x_train, y_train, 1, 2)
+x_train_mine, y_train_mine = extractMine(x_train, y_train, class1, class0)
 
-x_train_mine = x_train_mine[:100]
-y_train_mine = y_train_mine[:100]
+x_train_mine = x_train_mine[:numToTrainOn]
+y_train_mine = y_train_mine[:numToTrainOn]
 
 # normalize data and swap the grayscale 1-255 value for a 1 only
 x_train_mine_norm = []
@@ -31,7 +34,6 @@ x_train_mine_norm_flat = flatten(x_train_mine_norm)
 
 # number of samples in total
 numberOfFeatures = x_train_mine_norm_flat[0].__len__()
-print(x_train_mine_norm_flat[0].__len__())
 
 X = np.array(x_train_mine_norm_flat)
 
@@ -96,18 +98,11 @@ est_w = map_estimate1['estimated_w']
 
 print("Estimate b is", est_b)
 
-x_test_mine = []
-y_test_mine = []
-for i in range(0, x_test.__len__()):
-    if y_test[i] == 2 or y_test[i] == 1:
-        x_test_mine.append(x_test[i])
-        if(y_test[i] == 1):
-            y_test_mine.append(1)
-        elif(y_test[i] == 2):
-            y_test_mine.append(0)
+x_test_mine, y_test_mine = extractMine(x_test, y_test, class1, class0)
 
-x_test_mine = x_test_mine[:10]
-y_test_mine = np.array(y_test_mine[:10])
+
+x_test_mine = x_test_mine[:numToTestOn]
+y_test_mine = np.array(y_test_mine[:numToTestOn])
 
 # extract my actual classes for validation counts later
 y_test_mine_class1 = extractClass(x_test_mine, y_test_mine, 1)
@@ -137,11 +132,10 @@ for i in range(0, x_test_mine_norm_flat.__len__()):
 # print(test_class)
 # print(y_test_mine)
 
-print("We have", y_test_mine.__len__(), "total test samples...")
-print("We predicted we have", numClass0, "images of 2's.  We actually have",
-      y_test_mine_class0.__len__(), "images of 2's")
-print("We predicted we have", numClass1, "images of 1's.  We actually have",
-      y_test_mine_class1.__len__(), "images of 1's")
+print("We predicted we have", numClass0, "images of", class0, "'s.  We actually have",
+      y_test_mine_class0.__len__(), "images of", class0, "'s")
+print("We predicted we have", numClass1, "images of", class1, "'s.  We actually have",
+      y_test_mine_class1.__len__(), "images of", class1, "'s")
 
 print("Accuracy is", computeAccuracy(y_test_mine, test_class)*100, "% using",
-      y_train_mine.__len__(), "training samples and", y_test_mine.__len__(), "testing samples")
+      y_train_mine.__len__(), "training samples and", y_test_mine.__len__(), "testing samples, each with", numberOfFeatures, "features.")

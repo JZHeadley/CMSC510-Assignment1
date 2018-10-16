@@ -38,7 +38,7 @@ def extractMine(x, y, class1, class2):
     x_mine = []
     y_mine = []
     for i in range(0, x.__len__()):
-        if y[i] == 1 or y[i] == 2:
+        if y[i] == class1 or y[i] == class2:
             x_mine.append(x[i])
             if(y[i] == class1):
                 y_mine.append(1)
