@@ -1,3 +1,5 @@
+import numpy as np
+
 
 def normalize(dataset):
     for i in range(0, dataset.__len__()):
@@ -45,3 +47,28 @@ def extractMine(x, y, class1, class2):
             elif(y[i] == class2):
                 y_mine.append(0)
     return (x_mine, y_mine)
+
+
+def featureSelection(x):
+    x_selected = []
+    highestX = 0
+    highestY = 0
+    for i in range(0, x.__len__()):
+        selected_val = np.array(x[i]).compress(
+            ~np.all(x[i] == 0, axis=0), axis=1)
+        selected_val = selected_val[~np.all(selected_val == 0, axis=1)]
+        if selected_val.shape[0] > highestX:
+            highestX = selected_val.shape[0]
+        if selected_val.shape[1] > highestY:
+            highestY = selected_val.shape[1]
+        x_selected.append(selected_val)
+    print("We have", highestX, "x elements and", highestY, "y elements")
+    pad_selected = []
+    for i in range(0, x_selected.__len__()):
+        x_shape = x_selected[i].shape[0]
+        y_shape = x_selected[i].shape[1]
+        padded_val = np.pad(
+            x_selected[i], ((0, highestX-x_shape), (0, highestY-y_shape)), 'constant')
+        pad_selected.append(padded_val)
+
+    return pad_selected
