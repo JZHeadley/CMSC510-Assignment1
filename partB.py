@@ -10,15 +10,18 @@ import matplotlib.pyplot as plt
 import scipy as sp
 import theano.tensor as T
 from support import *
+import time
+start_time=time.time()
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
-numToTrainOn=100
-numToTestOn=100
+percTrain=.001
+percTest=.5
 class1 = 1
 class0 = 2
 np.set_printoptions(linewidth=200)
 
 x_train_mine, y_train_mine = extractMine(x_train, y_train, class1, class0)
+numToTrainOn=int(percTrain*x_train_mine.__len__())
 
 x_train_mine = x_train_mine[:numToTrainOn]
 y_train_mine = y_train_mine[:numToTrainOn]
@@ -99,6 +102,7 @@ est_w = map_estimate1['estimated_w']
 print("Estimate b is", est_b)
 
 x_test_mine, y_test_mine = extractMine(x_test, y_test, class1, class0)
+numToTestOn=int(percTest*x_test_mine.__len__())
 
 
 x_test_mine = x_test_mine[:numToTestOn]
@@ -131,7 +135,7 @@ for i in range(0, x_test_mine_norm_flat.__len__()):
 # print("Prob is")
 # print(test_class)
 # print(y_test_mine)
-
+print("That took",time.time()-start_time,"seconds to run")
 print("We predicted we have", numClass0, "images of", class0, "'s.  We actually have",
       y_test_mine_class0.__len__(), "images of", class0, "'s")
 print("We predicted we have", numClass1, "images of", class1, "'s.  We actually have",

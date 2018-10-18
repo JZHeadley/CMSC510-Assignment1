@@ -13,35 +13,34 @@ import scipy as sp
 import theano.tensor as T
 from support import *
 from numpy.linalg import inv
+from sklearn.metrics import precision_recall_fscore_support
+import time
+
+start_time = time.time()
 
 
 def class_estimate(sample, mu, cov):
     np_sample = np.array(sample).reshape(sample.__len__(), 1)
-    # print("np_sample",np_sample.shape)
     np_mu = np.array(mu).reshape(sample.__len__(), 1)
-    # print("np_mu",np_mu.shape)
     np_cov = inv(np.array(cov))
-    # print("np_cov",np_cov.shape)
     part = (np_sample-np_mu)
-    # print("part1",part1.shape)
-    # print("part1.transpose",part1.transpose().shape)
-    # print("part1and2",np.matmul((-0.5*part),np_cov).shape)
-    return np.matmul(-.5*np.matmul(part.transpose(), np_cov), part)[0][0]
-    # return (np.matmul((-0.5*part1),np_cov) * part1)
-    # return ((-.5*np.array(sample-mu).transpose())*inv(np.array(cov))*np.array(sample)-np.array(mu))
+    full = np.matmul(-.5*np.matmul(part.transpose(), np_cov), part)  # [0][0]
+    # print(full)
+    return full[0][0]
 
 
 # V00746112
 classValue1 = 1
 classValue2 = 2
-numToTrainOn = 50
-numToTestOn = 100
+percTrain = .05
+percTest = .5
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 np.set_printoptions(linewidth=250)
 
 x_train_mine, y_train_mine = extractMine(
     x_train, y_train,  classValue1, classValue2)
+numToTrainOn = int(percTrain*x_train_mine.__len__())
 
 x_train_mine = x_train_mine[:numToTrainOn]
 y_train_mine = y_train_mine[:numToTrainOn]
@@ -49,7 +48,10 @@ y_train_mine = y_train_mine[:numToTrainOn]
 # y_train_mine = np.array(y_train_mine).reshape(y_train_mine.__len__(), 1)
 # print(x_train_mine[0])
 # print()
+print(x_train_mine[0])
 x_train_mine_selected = featureSelection(x_train_mine)
+print(x_train_mine_selected[0])
+
 # print(x_train_mine_selected[0])
 # normalize data and swap the grayscale 1-255 value for a 1 only
 x_train_mine_norm = []
@@ -121,13 +123,12 @@ map_estimate1 = pm.find_MAP(model=basic_model)
 cov_est = map_estimate1['estimated_cov']
 mu0_est = map_estimate1['estimated_mu0']
 mu1_est = map_estimate1['estimated_mu1']
-# print("cov", cov_est)
-# print("mu0", mu0_est)
-# print("mu1", mu1_est)
 y_est = []
 
 x_test_mine, y_test_mine = extractMine(
     x_test, y_test, classValue1, classValue2)
+numToTestOn = int(percTest*x_test_mine.__len__())
+
 x_test_mine = x_test_mine[:numToTestOn]
 y_test_mine = y_test_mine[:numToTestOn]
 
@@ -151,6 +152,9 @@ for i in range(0, x_test_mine_norm_flat.__len__()):
     else:
         y_ests.append(classValue1)
         numClass1 += 1
+
+
+print("That took", time.time()-start_time, "seconds to run")
 print("We predicted we have", numClass1, "images of", classValue1, "'s.  We actually have",
       x_test_mine_class1.__len__(), "images of", classValue1, "'s")
 print("We predicted we have", numClass2, "images of", classValue2, "'s.  We actually have",
@@ -159,6 +163,9 @@ print("We predicted we have", numClass2, "images of", classValue2, "'s.  We actu
 print("Accuracy is", computeAccuracy(y_test_mine, y_ests)*100, "% using",
       y_train_mine.__len__(), "training samples and", y_test_mine.__len__(), "testing samples, each with", numberOfFeatures, "features.")
 
+# print([classValue2 if x==0 else x for x in y_test_mine])
+# print(y_ests)
+# print(precision_recall_fscore_support([classValue2 if x==0 else x for x in y_test_mine], y_ests, labels=[0, 1]))
 # print(y_test_mine)
 # print(y_ests)
 # compare map_estimate1['estimated_mu1'] with true_mu1
