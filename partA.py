@@ -16,7 +16,19 @@ from numpy.linalg import inv
 
 
 def class_estimate(sample, mu, cov):
-    return ((-.5*np.array(sample-mu).transpose())*inv(np.array(cov))*np.array(sample)-np.array(mu))
+    np_sample = np.array(sample).reshape(sample.__len__(), 1)
+    # print("np_sample",np_sample.shape)
+    np_mu = np.array(mu).reshape(sample.__len__(), 1)
+    # print("np_mu",np_mu.shape)
+    np_cov = inv(np.array(cov))
+    # print("np_cov",np_cov.shape)
+    part = (np_sample-np_mu)
+    # print("part1",part1.shape)
+    # print("part1.transpose",part1.transpose().shape)
+    # print("part1and2",np.matmul((-0.5*part),np_cov).shape)
+    return np.matmul(-.5*np.matmul(part.transpose(), np_cov), part)[0][0]
+    # return (np.matmul((-0.5*part1),np_cov) * part1)
+    # return ((-.5*np.array(sample-mu).transpose())*inv(np.array(cov))*np.array(sample)-np.array(mu))
 
 
 # V00746112
@@ -106,20 +118,21 @@ with basic_model:
 # now perform maximum likelihood (actually, maximum a posteriori (MAP), since we have priors) estimation
 # map_estimate1 is a dictionary: "parameter name" -> "it's estimated value"
 map_estimate1 = pm.find_MAP(model=basic_model)
-print("estimate is", map_estimate1)
 cov_est = map_estimate1['estimated_cov']
 mu0_est = map_estimate1['estimated_mu0']
 mu1_est = map_estimate1['estimated_mu1']
-print("cov", cov_est)
-print("mu0", mu0_est)
-print("mu1", mu1_est)
-class_est = []
+# print("cov", cov_est)
+# print("mu0", mu0_est)
+# print("mu1", mu1_est)
+y_est = []
 
 x_test_mine, y_test_mine = extractMine(
     x_test, y_test, classValue1, classValue2)
-
 x_test_mine = x_test_mine[:numToTestOn]
 y_test_mine = y_test_mine[:numToTestOn]
+
+x_test_mine_class1 = extractClass(x_test_mine, y_test_mine, 1)
+x_test_mine_class2 = extractClass(x_test_mine, y_test_mine, 0)
 
 x_test_mine_selected = featureSelection(x_test_mine)
 x_test_mine_norm = []
@@ -128,17 +141,25 @@ for i in range(0, x_test_mine_selected.__len__()):
 
 # sample some random point in 2D feature space
 x_test_mine_norm_flat = flatten(x_test_mine_norm)
-class_est = []
-print("prob class 2")
-print(class_estimate(x_test_mine_norm_flat[0], mu0_est, cov_est))
-print("prob class 1")
-print(class_estimate(x_test_mine_norm_flat[0], mu1_est, cov_est))
+numClass1 = 0
+numClass2 = 0
+y_ests = []
 for i in range(0, x_test_mine_norm_flat.__len__()):
     if class_estimate(x_test_mine_norm_flat[i], mu0_est, cov_est) > class_estimate(x_test_mine_norm_flat[i], mu1_est, cov_est):
-        class_est[i] = class2
+        y_ests.append(classValue2)
+        numClass2 += 1
     else:
-        class_est[i] = class1
+        y_ests.append(classValue1)
+        numClass1 += 1
+print("We predicted we have", numClass1, "images of", classValue1, "'s.  We actually have",
+      x_test_mine_class1.__len__(), "images of", classValue1, "'s")
+print("We predicted we have", numClass2, "images of", classValue2, "'s.  We actually have",
+      x_test_mine_class2.__len__(), "images of", classValue2, "'s")
 
-print(class_est)
+print("Accuracy is", computeAccuracy(y_test_mine, y_ests)*100, "% using",
+      y_train_mine.__len__(), "training samples and", y_test_mine.__len__(), "testing samples, each with", numberOfFeatures, "features.")
+
+# print(y_test_mine)
+# print(y_ests)
 # compare map_estimate1['estimated_mu1'] with true_mu1
 # same for mu_2, cov
