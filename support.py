@@ -1,5 +1,7 @@
 import numpy as np
 
+def flat_norm(dataset):
+    return(normalize(flatten(dataset)))
 
 def normalize(dataset):
     for i in range(0, dataset.__len__()):
@@ -47,6 +49,18 @@ def extractMine(x, y, class1, class2):
             elif(y[i] == class2):
                 y_mine.append(0)
     return (x_mine, y_mine)
+
+def flattenedFeatureSelection(x_train,x_test):
+    x_train_selected=[]
+    x_test_selected=[]
+
+    x_train=np.array(x_train)
+    x_test=np.array(x_test)
+    
+    print(x_train.shape)
+    featureOccurenceCount=[0]*x_train.shape[1]
+    print(featureOccurenceCount)
+    return x_train_selected,x_test_selected
 
 
 def featureSelection(x):
