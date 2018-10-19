@@ -22,18 +22,17 @@ start_time = time.time()
 def class_estimate(sample, mu, cov):
     np_sample = np.array(sample).reshape(sample.__len__(), 1)
     np_mu = np.array(mu).reshape(sample.__len__(), 1)
-    np_cov = inv(np.array(cov))
     part = (np_sample-np_mu)
-    full = np.matmul(-.5*np.matmul(part.transpose(), np_cov), part)  # [0][0]
-    # print(full)
+    full = np.matmul(-.5*np.matmul(part.transpose(), cov), part)  # [0][0]
+    print(full)
     return full[0][0]
 
 
 # V00746112
 classValue1 = 1
 classValue2 = 2
-percTrain = .05
-percTest = .5
+percTrain = .01
+percTest = .2
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 np.set_printoptions(linewidth=250)
@@ -56,7 +55,8 @@ print(x_train_mine_selected[0])
 # normalize data and swap the grayscale 1-255 value for a 1 only
 x_train_mine_norm = []
 for i in range(0, x_train_mine_selected.__len__()):
-    x_train_mine_norm.append(normalize(x_train_mine_selected[i]))
+    x_train_mine_norm.append((x_train_mine_selected[i]))
+    # x_train_mine_norm.append(normalize(x_train_mine_selected[i]))
 
 # sample some random point in 2D feature space
 x_train_mine_norm_flat = flatten(x_train_mine_norm)
@@ -126,7 +126,7 @@ mu1_est = map_estimate1['estimated_mu1']
 y_est = []
 
 x_test_mine, y_test_mine = extractMine(
-    x_test, y_test, classValue1, classValue2)
+    x_train, y_train, classValue1, classValue2)
 numToTestOn = int(percTest*x_test_mine.__len__())
 
 x_test_mine = x_test_mine[:numToTestOn]
@@ -138,15 +138,18 @@ x_test_mine_class2 = extractClass(x_test_mine, y_test_mine, 0)
 x_test_mine_selected = featureSelection(x_test_mine)
 x_test_mine_norm = []
 for i in range(0, x_test_mine_selected.__len__()):
-    x_test_mine_norm.append(normalize(x_test_mine_selected[i]))
+    x_test_mine_norm.append((x_test_mine_selected[i]))
+    # x_test_mine_norm.append(normalize(x_test_mine_selected[i]))
 
 # sample some random point in 2D feature space
 x_test_mine_norm_flat = flatten(x_test_mine_norm)
 numClass1 = 0
 numClass2 = 0
 y_ests = []
+inv_cov= inv(np.array(cov_est))
+
 for i in range(0, x_test_mine_norm_flat.__len__()):
-    if class_estimate(x_test_mine_norm_flat[i], mu0_est, cov_est) > class_estimate(x_test_mine_norm_flat[i], mu1_est, cov_est):
+    if class_estimate(x_test_mine_norm_flat[i], mu0_est, inv_cov) > class_estimate(x_test_mine_norm_flat[i], mu1_est, inv_cov):
         y_ests.append(classValue2)
         numClass2 += 1
     else:
