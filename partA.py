@@ -111,9 +111,11 @@ for i in range(0, x_test.__len__()):
     else:
         y_ests.append(classValue1)
         numClass1 += 1
-class1TrueCounts = extractClass(x_test, y_test, 1).__len__()
-class2TrueCounts = extractClass(x_test, y_test, 0).__len__()
-y_test = [classValue2 if x == 0 else x for x in y_test]
+# have to swap back to class values because I do everything as 0' and 1's
+y_test = [classValue2 if x == 0 else classValue1 for x in y_test]
+class1TrueCounts = extractClass(x_test, y_test, classValue1).__len__()
+class2TrueCounts = extractClass(x_test, y_test, classValue2).__len__()
+
 print("That took", time.time()-start_time, "seconds to run")
 print("We predicted we have", numClass1, "images of", classValue1, "'s.  We actually have",
       class1TrueCounts, "images of", classValue1, "'s")
@@ -121,6 +123,6 @@ print("We predicted we have", numClass2, "images of", classValue2, "'s.  We actu
       class2TrueCounts, "images of", classValue2, "'s")
 
 print("Accuracy is", computeAccuracy(y_test, y_ests)*100, "% using",
-      y_test.__len__(), "training samples and", y_test.__len__(), "testing samples, each with", numberOfFeatures, "features.")
+      y_train.__len__(), "training samples and", y_test.__len__(), "testing samples, each with", numberOfFeatures, "features.")
 
-print(precision_recall_fscore_support(y_test, y_ests, labels=[0, 1]))
+print(precision_recall_fscore_support(y_test, y_ests, labels=[classValue1, classValue2]))

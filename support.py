@@ -9,7 +9,7 @@ def normalize(dataset):
     for i in range(0, dataset.__len__()):
         for j in range(0, dataset[i].__len__()):
             if dataset[i][j] > 0:
-                dataset[i][j] = dataset[i][j] / float(255)
+                dataset[i][j] = dataset[i][j]# / float(255)
     return dataset
 
 
