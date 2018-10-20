@@ -1,13 +1,15 @@
 import numpy as np
 
+
 def flat_norm(dataset):
     return(normalize(flatten(dataset)))
+
 
 def normalize(dataset):
     for i in range(0, dataset.__len__()):
         for j in range(0, dataset[i].__len__()):
             if dataset[i][j] > 0:
-                dataset[i][j] = 1
+                dataset[i][j] = dataset[i][j] / float(255)
     return dataset
 
 
@@ -50,39 +52,27 @@ def extractMine(x, y, class1, class2):
                 y_mine.append(0)
     return (x_mine, y_mine)
 
-def flattenedFeatureSelection(x_train,x_test):
-    x_train_selected=[]
-    x_test_selected=[]
-
-    x_train=np.array(x_train)
-    x_test=np.array(x_test)
-    
-    print(x_train.shape)
-    featureOccurenceCount=[0]*x_train.shape[1]
-    print(featureOccurenceCount)
-    return x_train_selected,x_test_selected
-
 
 def featureSelection(x):
-    x_selected = []
-    highestX = 0
-    highestY = 0
-    for i in range(0, x.__len__()):
-        selected_val = np.array(x[i]).compress(
-            ~np.all(x[i] == 0, axis=0), axis=1)
-        selected_val = selected_val[~np.all(selected_val == 0, axis=1)]
-        if selected_val.shape[0] > highestX:
-            highestX = selected_val.shape[0]
-        if selected_val.shape[1] > highestY:
-            highestY = selected_val.shape[1]
-        x_selected.append(selected_val)
-    print("We have", highestX, "x elements and", highestY, "y elements")
-    pad_selected = []
-    for i in range(0, x_selected.__len__()):
-        x_shape = x_selected[i].shape[0]
-        y_shape = x_selected[i].shape[1]
-        padded_val = np.pad(
-            x_selected[i], ((0, highestX-x_shape), (0, highestY-y_shape)), 'constant')
-        pad_selected.append(padded_val)
+    x = np.array(x)
+    # gets number of nonzero elements in the column
+    column_counts = np.count_nonzero(x, axis=0)
+    # gives array of indices of positions of largest 50 values
+    highest_count_positions = np.argpartition(column_counts, -50)[-50:]
+    # print(column_counts[75:125])
+    # print(highest_count_positions)
+    return highest_count_positions
 
-    return pad_selected
+
+def removeFeatures(x_orig, featuresToKeep):
+    x_reduced = np.array([])
+    x = np.asarray(x_orig)
+    for count, index in enumerate(featuresToKeep):
+        columnToAdd = np.array(x[:, index]).reshape(x.__len__(), 1)
+        # print(columnToAdd)
+        if count == 0:
+            x_reduced = columnToAdd
+        else:
+            x_reduced = np.hstack((x_reduced, columnToAdd))
+
+    return x_reduced

@@ -13,7 +13,7 @@ import scipy as sp
 import theano.tensor as T
 from support import *
 from numpy.linalg import inv
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 import time
 
 start_time = time.time()
@@ -22,10 +22,8 @@ start_time = time.time()
 def class_estimate(sample, mu, cov):
     np_sample = np.array(sample).reshape(sample.__len__(), 1)
     np_mu = np.array(mu).reshape(sample.__len__(), 1)
-    np_cov = inv(np.array(cov))
     part = (np_sample-np_mu)
-    full = np.matmul(-.5*np.matmul(part.transpose(), np_cov), part)  # [0][0]
-    # print(full)
+    full = np.matmul(-.5*np.matmul(part.transpose(), cov), part)
     return full[0][0]
 
 
@@ -58,8 +56,8 @@ def build_model(x0, x1, numberOfFeatures):
 # V00746112
 classValue1 = 1
 classValue2 = 2
-percTrain = .05
-percTest = .5
+percTrain = 1
+percTest = 1
 (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 np.set_printoptions(linewidth=250)
@@ -80,12 +78,13 @@ y_test = y_test[:numToTestOn]
 x_test_class1 = extractClass(x_test, y_test, 1)
 x_test_class2 = extractClass(x_test, y_test, 0)
 
-x_train=flat_norm(x_train)
-x_test=flat_norm(x_test)
+x_train = flat_norm(x_train)
+x_test = flat_norm(x_test)
 
 
-x_train,x_test = flattenedFeatureSelection(x_train,x_test)
-
+featuresToKeep = featureSelection(x_train)
+x_train = removeFeatures(x_train, featuresToKeep)
+x_test = removeFeatures(x_test, featuresToKeep)
 numberOfFeatures = x_train[0].__len__()
 
 print(numberOfFeatures, "features")
@@ -94,39 +93,34 @@ print(numberOfFeatures, "features")
 class1 = extractClass(x_train, y_train, 1)
 class2 = extractClass(x_train, y_train, 0)
 
-# print(class1[0])
 x1 = np.array(class1)
 x0 = np.array(class2)
-# print(x1[0])
 
 mu0_est, mu1_est, cov_est = build_model(x0, x1, numberOfFeatures)
+
+inv_cov = inv(cov_est)
 
 
 numClass1 = 0
 numClass2 = 0
 y_ests = []
 for i in range(0, x_test.__len__()):
-    if class_estimate(x_test[i], mu0_est, cov_est) > class_estimate(x_test[i], mu1_est, cov_est):
+    if class_estimate(x_test[i], mu0_est, inv_cov) > class_estimate(x_test[i], mu1_est, inv_cov):
         y_ests.append(classValue2)
         numClass2 += 1
     else:
         y_ests.append(classValue1)
         numClass1 += 1
-
-
+class1TrueCounts = extractClass(x_test, y_test, 1).__len__()
+class2TrueCounts = extractClass(x_test, y_test, 0).__len__()
+y_test = [classValue2 if x == 0 else x for x in y_test]
 print("That took", time.time()-start_time, "seconds to run")
 print("We predicted we have", numClass1, "images of", classValue1, "'s.  We actually have",
-      x_test.__len__(), "images of", classValue1, "'s")
+      class1TrueCounts, "images of", classValue1, "'s")
 print("We predicted we have", numClass2, "images of", classValue2, "'s.  We actually have",
-      x_test.__len__(), "images of", classValue2, "'s")
+      class2TrueCounts, "images of", classValue2, "'s")
 
-print("Accuracy is", computeAccuracy(y_test_mine, y_ests)*100, "% using",
+print("Accuracy is", computeAccuracy(y_test, y_ests)*100, "% using",
       y_test.__len__(), "training samples and", y_test.__len__(), "testing samples, each with", numberOfFeatures, "features.")
 
-# print([classValue2 if x==0 else x for x in y_test_mine])
-# print(y_ests)
-# print(precision_recall_fscore_support([classValue2 if x==0 else x for x in y_test_mine], y_ests, labels=[0, 1]))
-# print(y_test_mine)
-# print(y_ests)
-# compare map_estimate1['estimated_mu1'] with true_mu1
-# same for mu_2, cov
+print(precision_recall_fscore_support(y_test, y_ests, labels=[0, 1]))
